@@ -1,1 +1,1 @@
-Init commit
+Discord bot for Milton
