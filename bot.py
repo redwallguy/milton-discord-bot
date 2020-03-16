@@ -24,14 +24,30 @@ async def on_ready():
 #     await bot.close()
 
 @bot.command()
-async def test2(ctx):
+async def test2(ctx, clip, board):
     sound_url = None
     if webserver_session is not None:
-        async with webserver_session.get('http://localhost:8000/clips') as resp:
+        async with webserver_session.get('http://localhost:8000/clips',
+                                        headers={
+                                            'Authorization': 'Token ' + server_token
+                                        },
+                                        params={
+                                            'board': board,
+                                            'name': clip
+                                        }) as resp:
             server_json = await resp.json()
-            sound_url = server_json[0]['sound']
-    vc = await ctx.author.voice.channel.connect()
-    vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: print('done', e))
+            sound_url = next((entry['sound'] for entry in server_json), None)
+    vc = await get_voice_client(ctx.author.voice.channel)
+    vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: print('done', e)) # TODO change print to logger, make print statement informative
+
+def is_connected(voice_channel):
+    return next((client for client in bot.voice_clients if client.channel == voice_channel), None) is not None
+
+async def get_voice_client(voice_channel):
+    if is_connected(voice_channel):
+        return next((client for client in bot.voice_clients if client.channel == voice_channel), None)
+    else:
+        return await voice_channel.connect()
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
 
