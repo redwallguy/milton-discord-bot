@@ -1,17 +1,4 @@
-import aiohttp
-import os
-
-# Environment variables
-server_token = os.environ.get("MILTON_SERVER_TOKEN")
-server_url = os.environ.get("MILTON_SERVER_URL")
-
-# Common request constants
-header_dict = {
-    'Authorization': 'Token ' + server_token
-}
-
-# Request session initialization
-webserver_session = aiohttp.ClientSession()
+import utils
 
 # REST request methods
 #
@@ -31,14 +18,11 @@ async def get_clip(clip, board):
         URL of clip audio
     """
     try:
-        async with webserver_session.get(server_url + '/clips',
-                                headers=header_dict,
-                                params={
-                                    'board': board,
-                                    'name': clip
-                                }) as resp:
-            server_json = await resp.json()
-            return next((entry['sound'] for entry in server_json), None)
+        server_json = await utils.clip_get(params={
+            "clip": clip,
+            "board": board
+        })
+        return next((entry['sound'] for entry in server_json), None)
     except Exception as e:
         print(e)
     

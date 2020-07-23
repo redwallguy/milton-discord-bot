@@ -1,4 +1,5 @@
 from discord.ext import commands
+import requests
 import utils
 import discord
 
@@ -16,6 +17,10 @@ class VoiceCog(commands.Cog):
         else:
             return await voice_channel.connect()
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await utils.generate_token()
+
     @commands.command()
     async def play(self, ctx, clip: str, board: str):
         sound_url = None
@@ -23,11 +28,12 @@ class VoiceCog(commands.Cog):
             'board': board,
             'name': clip
         })
-        sound_url = next((entry['sound'] for entry in server_json), None)
+        sound_url = next((entry.get("sound") for entry in server_json), None)
         vc = await self.get_voice_client(ctx.author.voice.channel)
         vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: print('done', e)) # TODO change print to logger, make print statement informative
 
 
-    @play.error
-    async def play_error(self, ctx, error):
-        await ctx.send(error)
+    # @play.error
+    # async def play_error(self, ctx, error):
+    #     print(error)
+    #     await ctx.send(error)
