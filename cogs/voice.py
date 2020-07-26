@@ -2,6 +2,10 @@ from discord.ext import commands
 import requests
 import utils
 import discord
+import logging
+
+logging.basicConfig(filename='milton.log',level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class VoiceCog(commands.Cog):
     
@@ -17,23 +21,26 @@ class VoiceCog(commands.Cog):
         else:
             return await voice_channel.connect()
 
+    async def disconnect_voice(self):
+        voice_client = next((client for client in self.bot.voice_clients), None)
+        if (voice_client != None):
+            await voice_client.disconnect()
+
     @commands.Cog.listener()
     async def on_ready(self):
         await utils.generate_token()
 
     @commands.command()
     async def play(self, ctx, clip: str, board: str):
-        sound_url = None
-        server_json = await utils.clip_get({
-            'board': board,
-            'name': clip
-        })
-        sound_url = next((entry.get("sound") for entry in server_json), None)
+        sound_url = await requests.get_clip(clip, board)
+        logger.info("Sound url " + sound_url)
         vc = await self.get_voice_client(ctx.author.voice.channel)
-        vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: print('done', e)) # TODO change print to logger, make print statement informative
+        vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: logger.info('done'))
 
+    @commands.command()
+    async def leave(self, ctx):
+        await self.disconnect_voice()
 
-    # @play.error
-    # async def play_error(self, ctx, error):
-    #     print(error)
-    #     await ctx.send(error)
+    @play.error
+    async def play_error(self, ctx, error):
+        logger.info(error)

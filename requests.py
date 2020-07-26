@@ -1,4 +1,8 @@
 import utils
+import logging
+
+logging.basicConfig(filename='milton.log',level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # REST request methods
 #
@@ -8,7 +12,7 @@ import utils
 async def get_clip(clip, board):
     """
     Performs a GET request on the /clips endpoint on the webserver with the specified
-    clip and board query params
+    clip and board query params to find clip, then requests presigned URL for playback.
 
     Arguments:
         clip: Name of clip (string)
@@ -17,12 +21,22 @@ async def get_clip(clip, board):
     Returns:
         URL of clip audio
     """
+    clip_id = None
     try:
         server_json = await utils.clip_get(params={
-            "clip": clip,
+            "name": clip,
             "board": board
         })
-        return next((entry['sound'] for entry in server_json), None)
+        logger.info(server_json)
+        clip_id = str(next((entry['id'] for entry in server_json), None))
     except Exception as e:
-        print(e)
+        logger.info("Error in get_clip " + e)
+    if (clip_id != None):
+        logger.info("Getting presigned url")
+        presigned_url = await utils.clip_url_get(key=clip_id)
+        logger.info(repr(presigned_url))
+        return presigned_url
+    else:
+        raise utils.ClipNotFoundException("Error generating presigned URL")
+    
     

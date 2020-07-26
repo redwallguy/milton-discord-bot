@@ -32,7 +32,7 @@ async def generate_token():
         token = json.get("token")
         webserver_headers['Authorization'] = 'Token ' + token
 
-async def _get(path, params):
+async def _get(path, params={}):
     """
     Helper method for making a GET request to a Milton url. Adds webserver token header 
     and regenerates token if invalid.
@@ -76,6 +76,18 @@ async def clip_get(params):
     """
     return await _get('/clips/', params)
 
+async def clip_url_get(key):
+    """
+    Performs GET request on /clips/<key>/get_presigned_url endpoint of the Milton API
+
+    Parameters:
+    key (int): the clip key
+
+    Returns:
+    str: json string of API call result
+    """
+    return await _get('/clips/' + key + '/get_presigned_url/')
+
 async def board_get(params):
     """
     Performs GET request on /boards endpoint of Milton API
@@ -111,3 +123,7 @@ async def user_post(data):
     str: json string of API call result
     """
     return await _post('/users', data)
+
+# Exceptions
+class ClipNotFoundException(Exception):
+    pass

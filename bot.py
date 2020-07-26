@@ -8,5 +8,9 @@ bot = commands.Bot(command_prefix='+')
 # Add all cogs
 bot.add_cog(VoiceCog(bot))
 
+@bot.command()
+async def exit(ctx):
+    await bot.close()
+
 bot.run(os.environ.get('DISCORD_TOKEN'))
 
