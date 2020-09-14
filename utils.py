@@ -76,9 +76,21 @@ async def clip_get(params):
     """
     return await _get('/clips/', params)
 
+async def alias_clip_get(params):
+    """
+    Performs GET request on /aliases/get_clip endpoint of Milton API
+
+    Parameters:
+    params (dict): the request parameters
+
+    Returns:
+    str: json string of API call result
+    """
+    return await _get('/aliases/get_clip/', params)
+
 async def clip_url_get(key):
     """
-    Performs GET request on /clips/<key>/get_presigned_url endpoint of the Milton API
+    Performs GET request on /clips/<key>/get_presigned_url endpoint of Milton API
 
     Parameters:
     key (int): the clip key
