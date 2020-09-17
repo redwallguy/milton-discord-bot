@@ -53,7 +53,7 @@ class VoiceCog(commands.Cog):
         if (voice_client != None):
             await voice_client.disconnect()
 
-    async def get_clips(board):
+    async def get_clips(self, board):
         """
         Gets clips from board.
 

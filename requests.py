@@ -45,7 +45,7 @@ async def get_clip(clip, board):
                 "board": board
             })
             logger.info(alias_server_json)
-            clip_id = next((str(entry['id']) for entry in server_json), None)
+            clip_id = str(alias_server_json['id'])
         except Exception as e:
             logger.info("Error in alias_clip_get " + e)
     if (clip_id is not None):
