@@ -61,8 +61,9 @@ class VoiceCog(commands.Cog):
         board (str): Name of board to list clips from
 
         Returns:
-        clips (List[str]): Clips of board
+        List[str]: Clips of board
         """
+        return await requests.list_board(board)
 
 
     @commands.Cog.listener()
@@ -73,11 +74,15 @@ class VoiceCog(commands.Cog):
         await utils.generate_token()
 
     @commands.command(aliases=["ls"])
-    async def list(self, ctx, board=None):
+    async def list_board(self, ctx, board=None):
         """
         """
         # TODO implement
-        pass
+        board_list = await self.get_clips(board)
+        formatted_response = "Board: " + board + "\n----------\n"
+        for clip in board_list:
+            formatted_response += "'" + clip.get('name') + "': " + str(clip.get('aliases')) + "\n"
+        await ctx.send(formatted_response)
 
     @commands.command()
     async def play(self, ctx, clip: str, board: str):
@@ -100,4 +105,8 @@ class VoiceCog(commands.Cog):
 
     @play.error
     async def play_error(self, ctx, error):
+        logger.info(error)
+
+    @list_board.error
+    async def list_board_error(self, ctx, error):
         logger.info(error)

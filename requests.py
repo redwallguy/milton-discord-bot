@@ -14,15 +14,16 @@ async def get_clip(clip, board):
     Performs a GET request on the /clips endpoint on the webserver with the specified
     clip and board query params to find clip, then requests presigned URL for playback.
 
-    If the clip cannot be found, it searches for an alias on the specified board, and 
-    uses the associated clip to request presigned URL for playback.
+    If the clip cannot be found, it performs a GET request on the /aliases endpoint of 
+    the webserver to search for an alias on the specified board, and uses the associated 
+    clip to request presigned URL for playback.
 
-    Arguments:
-        clip: Name of clip (string)
-        board: Name of board (string)
+    Parameters:
+        clip (str): Name of clip
+        board (str): Name of board
 
     Returns:
-        URL of clip audio
+        str: URL of clip audio
     """
     clip_id = None
     try:
@@ -55,5 +56,49 @@ async def get_clip(clip, board):
         return presigned_url
     else:
         raise utils.ClipNotFoundException("Error generating presigned URL")
-    
+
+async def list_board(board):
+    """
+    Performs GET request on /clips endpoint of the webserver with specified board 
+    param to find all clips on that board.
+
+    Then performs GET request on /aliases endpoint of the webserver with specified 
+    board param to find all aliases on that board.
+
+    Returns a list of clip objects of the form {"name": name, "aliases": [a1, a2,...]}
+
+    Parameters:
+        board (str): Name of board
+
+    Returns:
+        List[clips]: Clips of board
+    """
+    board_list = []
+    alias_list = []
+    try: # Get the clips on the board
+        board_list = await utils.clip_get(params={
+            "board": board
+        })
+        logger.info(board_list)
+    except Exception as e:
+        logger.info("Error in clip_get " + e)
+    try: # Get the aliases on the board
+        alias_list = await utils.alias_from_board_get(params={
+            "name": board
+        })
+        logger.info(alias_list)
+    except Exception as e:
+        logger.info("Error in alias_from_board_get " + e)
+    try: # Merge clip and alias information, then trim unnecessary information
+        temp_list = []
+        for clip in board_list:
+            clip_object = {
+                "name": clip["name"],
+                "aliases": [a["name"] for a in alias_list if a["clip"]["id"] == clip["id"]]
+            }
+            temp_list.append(clip_object)
+        board_list = temp_list
+    except Exception as e:
+        logger.info("Error in clip/alias merge " + e)
+    return board_list
     
