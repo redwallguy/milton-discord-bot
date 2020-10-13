@@ -129,15 +129,64 @@ class VoiceCog(commands.Cog):
     @commands.group()
     async def intro(self, ctx):
         if ctx.invoked_subcommand is None:
-            pass # TODO show user's intro
+            discord_user = await utils.user_get({
+                "user_id": ctx.author.id
+            })
+            if len(discord_user) == 0:
+                discord_user = await utils.user_post({
+                    "user_id": ctx.author.id
+                })
+                logger.info(repr(discord_user))
+                await ctx.send("No intro set.")
+            else:
+                intro = next((entry['intro'] for entry in discord_user), None)
+                if intro is not None:
+                    await ctx.send("Your intro is " + intro['name'] + ", on board " + intro['board'])
+                else:
+                    await ctx.send("No intro set.")
+
     
     @intro.command(name='set')
     async def set_intro(self, ctx, clip, board):
-        pass
+            discord_user = await utils.user_get({
+                "user_id": ctx.author.id
+            })
+            if len(discord_user) == 0: # If no user exists, create one with given intro
+                discord_user = await utils.user_post({
+                    "user_id": ctx.author.id,
+                    "intro": {
+                        "name": clip,
+                        "board": board
+                    }
+                })
+                logger.info(repr(discord_user))
+            else:
+                server_json = await utils.user_patch(user_id=ctx.author.id, data={
+                    "user_id": ctx.author.id,
+                    "intro": {
+                        "name": clip,
+                        "board": board
+                    }
+                })
+                logger.info(repr(server_json))
 
     @intro.command(name='delete')
     async def delete_intro(self, ctx):
-        pass
+            discord_user = await utils.user_get({
+                "user_id": ctx.author.id
+            })
+            if len(discord_user) == 0: # If no user exists, create one with null intro
+                discord_user = await utils.user_post({
+                    "user_id": ctx.author.id,
+                    "intro": None
+                })
+                logger.info(repr(discord_user))
+            else:
+                server_json = await utils.user_patch(user_id=ctx.author.id, data={
+                    "user_id": ctx.author.id,
+                    "intro": None
+                })
+                logger.info(repr(server_json))
 
     @commands.command()
     async def play(self, ctx, clip: str, board: str):

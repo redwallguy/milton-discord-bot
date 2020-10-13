@@ -1,4 +1,7 @@
-import aiohttp, os
+import aiohttp, os, logging
+
+logging.basicConfig(filename='milton.log',level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Constants
 server_username = os.environ.get("MILTON_SERVER_USERNAME")
@@ -36,6 +39,13 @@ async def _get(path, params={}):
     """
     Helper method for making a GET request to a Milton url. Adds webserver token header 
     and regenerates token if invalid.
+
+    Parameters:
+    path (str): path for GET request
+    params (dict): parameters for GET request
+
+    Returns:
+    str: json string of API call result
     """
     async with webserver_session.get(server_url + "/api" + path,
                                     headers=webserver_headers,
@@ -52,10 +62,40 @@ async def _post(path, data):
     """
     Helper method for making a POST request to a Milton url. Adds webserver token header 
     and regenerates token if invalid.
+
+    Parameters:
+    path (str): path for POST request
+    params (dict): parameters for POST request
+
+    Returns:
+    str: json string of API call result
     """
-    async with webserver_session.post(server_url + path,
+    async with webserver_session.post(server_url + "/api" + path,
                                         headers=webserver_headers,
-                                        data=data) as resp:
+                                        json=data) as resp:
+        if (resp.status == 200):
+            return await resp.json()
+        elif (resp.status == 401):
+            await generate_token()
+            return "Token required regeneration. Please retry."
+        else:
+            return "Response error: " + str(resp.status)
+
+async def _patch(path, data):
+    """
+    Helper method for making a PATCH request to a Milton url. Adds webserver token header 
+    and regenerates token if invalid.
+
+    Parameters:
+    path (str): path for PATCH request
+    params (dict): parameters for PATCH request
+
+    Returns:
+    str: json string of API call result
+    """
+    async with webserver_session.patch(server_url + "/api" + path,
+                                        headers=webserver_headers,
+                                        json=data) as resp:
         if (resp.status == 200):
             return await resp.json()
         elif (resp.status == 401):
@@ -126,7 +166,7 @@ async def board_get(params):
 
 async def user_get(params):
     """
-    Performs GET request on /users endpoint of Milton API
+    Performs GET request on /discord-users endpoint of Milton API
 
     Parameters:
     params (dict): the request parameters
@@ -134,19 +174,34 @@ async def user_get(params):
     Returns:
     str: json string of API call result
     """
-    return await _get('/users/', params)
+    return await _get('/discord-users/', params)
 
 async def user_post(data):
     """
-    Performs POST request on /users endpoint of Milton API
+    Performs POST request on /discord-users endpoint of Milton API
 
     Parameters:
-    params (data): the request parameters
+    data (dict): the request parameters
 
     Returns:
     str: json string of API call result
     """
-    return await _post('/users', data)
+    return await _post('/discord-users/', data)
+
+async def user_patch(data, user_id):
+    """
+    Performs PATCH request on /discord-users/<user_id> endpoint of Milton API.
+    Updates instance <user-id> with provided data.
+
+    Parameters:
+    data (dict): the request parameters
+    user_id (str): id of the discord user instance
+
+    Returns:
+    str: json string of API call result
+    """
+    logger.info("disc user patch data: " + str(data))
+    return await _patch('/discord-users/' + str(user_id) + "/", data)
 
 # Exceptions
 class ClipNotFoundException(Exception):
