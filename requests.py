@@ -1,7 +1,8 @@
 import utils
 import logging
 
-logging.basicConfig(filename='milton.log',level=logging.INFO)
+logging.basicConfig(filename='milton.log',level=logging.INFO,
+                    format='%(asctime)s %(levelname)s:%(filename)s:%(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
 # REST request methods
@@ -26,18 +27,16 @@ async def get_clip(clip, board):
         str: URL of clip audio
     """
     clip_id = None
+    volume = None
     try:
         server_json = await utils.clip_get(params={
             "name": clip,
             "board": board
         })
         logger.info(server_json)
-        clip_id = next((str(entry['id']) for entry in server_json), None)
+        clip_id, volume = next(((str(entry['id']), int(entry['volume'])) for entry in server_json), (None, None))
     except Exception as e:
         logger.info("Error in get_clip " + e)
-    logger.info(clip_id)
-    logger.info(type(clip_id))
-    logger.info(clip_id is None)
     if (clip_id is None):
         logger.info("trying aliases")
         try:
@@ -46,14 +45,14 @@ async def get_clip(clip, board):
                 "board": board
             })
             logger.info(alias_server_json)
-            clip_id = str(alias_server_json['id'])
+            clip_id, volume = str(alias_server_json['id']), int(alias_server_json['volume'])
         except Exception as e:
             logger.info("Error in alias_clip_get " + e)
-    if (clip_id is not None):
+    if (clip_id is not None and volume is not None):
         logger.info("Getting presigned url")
         presigned_url = await utils.clip_url_get(key=clip_id)
         logger.info(repr(presigned_url))
-        return presigned_url
+        return presigned_url, volume
     else:
         raise utils.ClipNotFoundException("Error generating presigned URL")
 
@@ -94,7 +93,8 @@ async def list_board(board):
         for clip in board_list:
             clip_object = {
                 "name": clip["name"],
-                "aliases": [a["name"] for a in alias_list if a["clip"]["id"] == clip["id"]]
+                "aliases": [a["name"] for a in alias_list if a["clip"]["id"] == clip["id"]],
+                "volume": clip["volume"]
             }
             temp_list.append(clip_object)
         board_list = temp_list

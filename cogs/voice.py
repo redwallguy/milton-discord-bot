@@ -4,7 +4,8 @@ import utils
 import discord
 import logging
 
-logging.basicConfig(filename='milton.log',level=logging.INFO)
+logging.basicConfig(filename='milton.log',level=logging.INFO,
+                    fmt='%(asctime)s %(levelname)s:%(filename)s:%(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
 class VoiceCog(commands.Cog):
@@ -84,6 +85,13 @@ class VoiceCog(commands.Cog):
         """
         await utils.generate_token()
 
+    @commands.Cog.listener()
+    async def on_command_error(self, error):
+        """
+        Logs errors
+        """
+        logging.info(repr(error))
+
     @commands.command(aliases=['sb'])
     async def switch_board(self, ctx, board):
         board_list = await self.get_boards()
@@ -112,7 +120,7 @@ class VoiceCog(commands.Cog):
         board_list = await self.get_clips(board)
         formatted_response = "Board: " + board + "\n----------\n"
         for clip in board_list:
-            formatted_response += "'" + clip.get('name') + "': " + str(clip.get('aliases')) + "\n"
+            formatted_response += "'" + clip.get('name') + "': " + str(clip.get('aliases')) + " : Volume " + str(clip.get('volume')) + "\n"
         await ctx.send(formatted_response)
 
     @commands.command(aliases=['lb'])
@@ -189,16 +197,29 @@ class VoiceCog(commands.Cog):
                 logger.info(repr(server_json))
 
     @commands.command()
-    async def play(self, ctx, clip: str, board: str):
+    async def play(self, ctx, clip: str, board: str=None):
         """
         Plays <clip> from <board> in voice channel user is currently connected to.
 
         If user is not connected to a voice channel, this will do nothing.
         """
-        sound_url = await requests.get_clip(clip, board)
-        vc = await self.get_voice_client(ctx.author.voice.channel)
-        if (vc != None):
-            vc.play(discord.FFmpegPCMAudio(sound_url), after=lambda e: logger.info('done playing'))
+        if ctx.author.voice is None:
+            ctx.send("Must be in a voice channel to play clips.")
+            return
+        elif ctx.author.voice.channel is None:
+            ctx.send("Must be in a voice channel to play clips.")
+            return
+        else:
+            if board is None:
+                if self.board is not None:
+                    board = self.board
+                else:
+                    ctx.send("Set a default board or input a board.")
+                    return
+            sound_url, volume = await requests.get_clip(clip, board)
+            vc = await self.get_voice_client(ctx.author.voice.channel)
+            if (vc != None):
+                vc.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(sound_url), volume=float(volume/100)), after=lambda e: logger.info('done playing'))
 
     @commands.command()
     async def leave(self, ctx):
