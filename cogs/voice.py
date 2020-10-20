@@ -92,8 +92,27 @@ class VoiceCog(commands.Cog):
         """
         logging.info(repr(error))
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        """
+        Plays intro on channel join, if user has one
+        """
+        discord_user = await utils.user_get({
+                "user_id": member.id
+            })
+        if len(discord_user) != 0:
+            intro = next((entry['intro'] for entry in discord_user), None)
+            if intro is not None and after.channel is not None:
+                sound_url, volume = await requests.get_clip(intro['name'], intro['board'])
+                vc = await self.get_voice_client(after.channel)
+                if (vc != None):
+                    vc.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(sound_url), volume=float(volume/100)), after=lambda e: logger.info('done playing'))
+
     @commands.command(aliases=['sb'])
     async def switch_board(self, ctx, board):
+        """
+        Switches the default board to <board>
+        """
         board_list = await self.get_boards()
         temp_list = [b.get('name') for b in board_list]
         if board in temp_list:
@@ -118,9 +137,9 @@ class VoiceCog(commands.Cog):
             else:
                 board = self.board
         board_list = await self.get_clips(board)
-        formatted_response = "Board: " + board + "\n----------\n"
+        formatted_response = "Board: `" + board + "`\n\n`clip` | `aliases` | `volume`\n----------\n"
         for clip in board_list:
-            formatted_response += "'" + clip.get('name') + "': " + str(clip.get('aliases')) + " : Volume " + str(clip.get('volume')) + "\n"
+            formatted_response += "`" + clip.get('name') + "` | `" + str(clip.get('aliases')) + "` | `" + str(clip.get('volume')) + "`\n"
         await ctx.send(formatted_response)
 
     @commands.command(aliases=['lb'])
@@ -131,11 +150,14 @@ class VoiceCog(commands.Cog):
         board_list = await self.get_boards()
         formatted_response = "Boards\n----------\n"
         for board in board_list:
-            formatted_response += board.get('name') + "\n"
+            formatted_response += "`" + board.get('name') + "`\n"
         await ctx.send(formatted_response)
 
     @commands.group()
     async def intro(self, ctx):
+        """
+        Returns user's intro
+        """
         if ctx.invoked_subcommand is None:
             discord_user = await utils.user_get({
                 "user_id": ctx.author.id
@@ -149,58 +171,65 @@ class VoiceCog(commands.Cog):
             else:
                 intro = next((entry['intro'] for entry in discord_user), None)
                 if intro is not None:
-                    await ctx.send("Your intro is " + intro['name'] + ", on board " + intro['board'])
+                    await ctx.send("Your intro is `" + intro['name'] + "` on board `" + intro['board'] + "`")
                 else:
                     await ctx.send("No intro set.")
 
     
     @intro.command(name='set')
     async def set_intro(self, ctx, clip, board):
-            discord_user = await utils.user_get({
-                "user_id": ctx.author.id
+        """
+        Set user's intro to <clip> <board>
+        """
+        discord_user = await utils.user_get({
+            "user_id": ctx.author.id
+        })
+        if len(discord_user) == 0: # If no user exists, create one with given intro
+            discord_user = await utils.user_post({
+                "user_id": ctx.author.id,
+                "intro": {
+                    "name": clip,
+                    "board": board
+                }
             })
-            if len(discord_user) == 0: # If no user exists, create one with given intro
-                discord_user = await utils.user_post({
-                    "user_id": ctx.author.id,
-                    "intro": {
-                        "name": clip,
-                        "board": board
-                    }
-                })
-                logger.info(repr(discord_user))
-            else:
-                server_json = await utils.user_patch(user_id=ctx.author.id, data={
-                    "user_id": ctx.author.id,
-                    "intro": {
-                        "name": clip,
-                        "board": board
-                    }
-                })
-                logger.info(repr(server_json))
+            logger.info(repr(discord_user))
+        else:
+            server_json = await utils.user_patch(user_id=ctx.author.id, data={
+                "user_id": ctx.author.id,
+                "intro": {
+                    "name": clip,
+                    "board": board
+                }
+            })
+            logger.info(repr(server_json))
 
     @intro.command(name='delete')
     async def delete_intro(self, ctx):
-            discord_user = await utils.user_get({
-                "user_id": ctx.author.id
+        """
+        Deletes user's intro
+        """
+        discord_user = await utils.user_get({
+            "user_id": ctx.author.id
+        })
+        if len(discord_user) == 0: # If no user exists, create one with null intro
+            discord_user = await utils.user_post({
+                "user_id": ctx.author.id,
+                "intro": None
             })
-            if len(discord_user) == 0: # If no user exists, create one with null intro
-                discord_user = await utils.user_post({
-                    "user_id": ctx.author.id,
-                    "intro": None
-                })
-                logger.info(repr(discord_user))
-            else:
-                server_json = await utils.user_patch(user_id=ctx.author.id, data={
-                    "user_id": ctx.author.id,
-                    "intro": None
-                })
-                logger.info(repr(server_json))
+            logger.info(repr(discord_user))
+        else:
+            server_json = await utils.user_patch(user_id=ctx.author.id, data={
+                "user_id": ctx.author.id,
+                "intro": None
+            })
+            logger.info(repr(server_json))
 
     @commands.command()
     async def play(self, ctx, clip: str, board: str=None):
         """
         Plays <clip> from <board> in voice channel user is currently connected to.
 
+        If the default board is set, then `+play <clip>` will play the clip on the default board.
         If user is not connected to a voice channel, this will do nothing.
         """
         if ctx.author.voice is None:

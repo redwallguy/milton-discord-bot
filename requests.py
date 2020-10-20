@@ -82,7 +82,7 @@ async def list_board(board):
     except Exception as e:
         logger.info("Error in clip_get " + e)
     try: # Get the aliases on the board
-        alias_list = await utils.alias_from_board_get(params={
+        alias_list = await utils.alias_from_board_get(params={  # Get aliases in one request to reduce overhead of requests for each clip
             "name": board
         })
         logger.info(alias_list)
