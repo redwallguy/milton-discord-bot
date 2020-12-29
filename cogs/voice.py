@@ -4,8 +4,12 @@ import utils
 import discord
 import logging
 
-logging.basicConfig(filename='milton.log',level=logging.INFO,
-                    fmt='%(asctime)s %(levelname)s:%(filename)s:%(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+if (os.environ.get("LOGGING_MODE") == 'file'):
+    logging.basicConfig(filename='milton.log',level=logging.INFO,
+                        format='%(asctime)s %(levelname)s:%(filename)s:%(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+else:
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(levelname)s:%(filename)s:%(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
 class VoiceCog(commands.Cog):
