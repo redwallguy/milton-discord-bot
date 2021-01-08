@@ -32,13 +32,6 @@ async def on_ready():
         await asyncio.sleep(5)
         checks.spam.flush() # Flush spam cache every 5 seconds
 
-@bot.command()
-async def exit(ctx):
-    voice = bot.get_cog("VoiceCog")
-    if voice is not None:
-        await voice.disconnect_voice()
-    await bot.close()
-
 # TODO When deploying on heroku, change logging from file to stderr
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
