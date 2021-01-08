@@ -1,5 +1,5 @@
 import utils
-import logging
+import logging, os
 
 if (os.environ.get("LOGGING_MODE") == 'file'):
     logging.basicConfig(filename='milton.log',level=logging.INFO,

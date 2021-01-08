@@ -2,7 +2,8 @@ from discord.ext import commands
 import requests
 import utils
 import discord
-import logging
+import logging, os
+import checks
 
 if (os.environ.get("LOGGING_MODE") == 'file'):
     logging.basicConfig(filename='milton.log',level=logging.INFO,
@@ -81,16 +82,8 @@ class VoiceCog(commands.Cog):
         """
         return await utils.board_get({})
 
-
     @commands.Cog.listener()
-    async def on_ready(self):
-        """
-        Generates Milton server token on ready
-        """
-        await utils.generate_token()
-
-    @commands.Cog.listener()
-    async def on_command_error(self, error):
+    async def on_command_error(self, ctx, error):
         """
         Logs errors
         """
@@ -197,6 +190,7 @@ class VoiceCog(commands.Cog):
                 }
             })
             logger.info(repr(discord_user))
+            await ctx.send("Intro set to " + clip + " from " + board + ".")
         else:
             server_json = await utils.user_patch(user_id=ctx.author.id, data={
                 "user_id": ctx.author.id,
@@ -206,6 +200,8 @@ class VoiceCog(commands.Cog):
                 }
             })
             logger.info(repr(server_json))
+            await ctx.send("Intro set to " + clip + " from " + board + ".")
+
 
     @intro.command(name='delete')
     async def delete_intro(self, ctx):
@@ -221,12 +217,14 @@ class VoiceCog(commands.Cog):
                 "intro": None
             })
             logger.info(repr(discord_user))
+            await ctx.send("Intro deleted.")
         else:
             server_json = await utils.user_patch(user_id=ctx.author.id, data={
                 "user_id": ctx.author.id,
                 "intro": None
             })
             logger.info(repr(server_json))
+            await ctx.send("Intro deleted.")
 
     @commands.command()
     async def play(self, ctx, clip: str, board: str=None):
@@ -237,17 +235,17 @@ class VoiceCog(commands.Cog):
         If user is not connected to a voice channel, this will do nothing.
         """
         if ctx.author.voice is None:
-            ctx.send("Must be in a voice channel to play clips.")
+            await ctx.send("Must be in a voice channel to play clips.")
             return
         elif ctx.author.voice.channel is None:
-            ctx.send("Must be in a voice channel to play clips.")
+            await ctx.send("Must be in a voice channel to play clips.")
             return
         else:
             if board is None:
                 if self.board is not None:
                     board = self.board
                 else:
-                    ctx.send("Set a default board or input a board.")
+                    await ctx.send("Set a default board or input a board.")
                     return
             sound_url, volume = await requests.get_clip(clip, board)
             vc = await self.get_voice_client(ctx.author.voice.channel)

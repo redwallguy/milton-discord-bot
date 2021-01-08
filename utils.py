@@ -70,7 +70,7 @@ async def _post(path, data):
 
     Parameters:
     path (str): path for POST request
-    params (dict): parameters for POST request
+    data (dict): parameters for POST request
 
     Returns:
     str: json string of API call result
@@ -84,7 +84,7 @@ async def _post(path, data):
             await generate_token()
             return "Token required regeneration. Please retry."
         else:
-            return "Response error: " + str(resp.status)
+            return "Response error " + str(resp.status)
 
 async def _patch(path, data):
     """
@@ -93,7 +93,7 @@ async def _patch(path, data):
 
     Parameters:
     path (str): path for PATCH request
-    params (dict): parameters for PATCH request
+    data (dict): parameters for PATCH request
 
     Returns:
     str: json string of API call result
