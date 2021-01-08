@@ -24,9 +24,6 @@ async def on_command(ctx):
 @bot.event
 async def on_ready():
     await utils.generate_token() # Generate milton server token
-
-    if not discord.opus.is_loaded():
-        discord.opus.load_opus('opus_demo') # load opus 
     
     await checks.creds.sync_gods() # Sync list of gods, mods, and banned 
     await checks.creds.sync_mods()
