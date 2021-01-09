@@ -99,7 +99,7 @@ class VoiceCog(commands.Cog):
             })
         if len(discord_user) != 0:
             intro = next((entry['intro'] for entry in discord_user), None)
-            if intro is not None and after.channel is not None:
+            if intro is not None and after.channel is not None and before.channel is None:
                 sound_url, volume = await requests.get_clip(intro['name'], intro['board'])
                 vc = await self.get_voice_client(after.channel)
                 if (vc != None):
