@@ -92,8 +92,10 @@ class VoiceCog(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         """
-        Plays intro on channel join, if user has one
+        Plays intro on channel join, if user has one.
+        Automatically leaves voice if it's the only user remaining.
         """
+        # play intro if it exists
         discord_user = await utils.user_get({
                 "user_id": member.id
             })
@@ -104,6 +106,10 @@ class VoiceCog(commands.Cog):
                 vc = await self.get_voice_client(after.channel)
                 if (vc != None):
                     vc.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(sound_url), volume=float(volume/100)), after=lambda e: logger.info('done playing'))
+
+        if after.channel is None and before.channel is not None:
+            if len(before.channel.members) == 1:
+                await self.disconnect_voice()
 
     @commands.command(aliases=['sb'])
     async def switch_board(self, ctx, board):
