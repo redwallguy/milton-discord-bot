@@ -95,6 +95,10 @@ class VoiceCog(commands.Cog):
         Plays intro on channel join, if user has one.
         Automatically leaves voice if it's the only user remaining.
         """
+        # Ignore itself
+        if self.bot.user == member:
+            return
+
         # play intro if it exists
         discord_user = await utils.user_get({
                 "user_id": member.id
@@ -107,6 +111,24 @@ class VoiceCog(commands.Cog):
                 if (vc != None):
                     vc.play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(sound_url), volume=float(volume/100)), after=lambda e: logger.info('done playing'))
 
+        # Notify role when a user joins voice
+        if after.channel is not None and before.channel is None:
+            notifications_channel = discord.utils.get(after.channel.guild.text_channels, name="milton-cmds")
+            notifications_role = discord.utils.get(after.channel.guild.roles, name='Milton Notifications')
+            notifications_str = ""
+            member_str = ""
+
+            if notifications_role is not None:
+                notifications_str = notifications_role.mention
+            if member.nick is not None:
+                member_str = member.nick
+            else:
+                member_str = member.name
+
+            if notifications_channel is not None:
+                await notifications_channel.send('{role} {member} has joined voice.'.format(member=member_str, role=notifications_str))
+
+        # Leave if milton is the only user remaining
         if after.channel is None and before.channel is not None:
             if len(before.channel.members) == 1:
                 await self.disconnect_voice()
